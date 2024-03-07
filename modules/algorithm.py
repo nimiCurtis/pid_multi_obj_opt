@@ -10,21 +10,13 @@ from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.gauss import GaussianMutation
 from pymoo.core.callback import Callback
-from pymoo.util.ref_dirs import get_reference_directions
-from pymoo.visualization.scatter import Scatter
 
 from pymoo.util.display.column import Column
 from pymoo.util.display.output import Output
 
 from modules.motor_control import (
-        DCMotorTransferFunction,
-        PIDTransferFunction,
         MotorResponse,
-        Criterion
     )
-
-
-
 
 class Algorithm:
     
@@ -32,7 +24,8 @@ class Algorithm:
     def __init__(self, problem, algorithm) -> None:
         self.problem = problem
         self.algorithm = algorithm["algo"]
-        self.name = algorithm["name"] 
+        self.name = algorithm["name"]
+        self.obj_functions = self.problem.criterions 
         
     
     def run(self,n_gen):
@@ -45,9 +38,9 @@ class Algorithm:
                 save_history = True,
                 verbose=True)
 
-        pass
-    
-    
+        return {"solutions":{"all":res.pop.get("X"), "pareto":res.X},
+                "objective": {"all": res.pop.get("F"), "pareto": res.F}}
+
 class MyOutput(Output):
 
     def __init__(self):
@@ -66,8 +59,8 @@ class MyOutput(Output):
         self.obj1_worst.set(f'{np.max(res[:,0]):.5f}')
         self.obj2_best.set(f'{np.min(res[:,1]):.5f}')
         self.obj2_worst.set(f'{np.max(res[:,1]):.5f}')
-        plt.scatter(res[:,0],res[:,1])
-        plt.draw() # show()
+        # plt.scatter(res[:,0],res[:,1])
+        # plt.draw() # show()
 
 class MyCallback(Callback):
 
@@ -82,34 +75,31 @@ class MyCallback(Callback):
         self.data["min_itae"].append(min[0])
         self.data["min_ise"].append(min[1])
         self.index+=1
-        
 
 
 class PIDOptimizationProblem(ElementwiseProblem):
-    def __init__(self):
+    def __init__(self, motor, C_pid, time,response, criterions):
         super().__init__(n_var=3,  # kp, ki, kd
                         n_obj=2,  # ITAE, ISE
                         n_constr=0,  # No constraints
                         xl=np.array([10, 1, 0]),  # Lower bounds for kp, ki, kd
                         xu=np.array([200, 250, 50]))  # Upper bounds for kp, ki, kd
-        
-        # motor, pic controller and response objects
-        # Choose arbitrary parameters for the motor for demonstration
-        self.motor = DCMotorTransferFunction(kt=0.01, kb=0.01, J=0.022, L=0.035, b=0.01, R=2.45)
-        self.C_pid = PIDTransferFunction(1, 0, 0)
-        self.t = np.linspace(0, 5, 1000)  # Time vector for simulation
+
+        self.motor = motor
+        self.C_pid = C_pid
+        self.t = time
         self.response = MotorResponse(self.t)
 
-        # Compute ITAE and ISE criteria
-        self.itae_criterion = Criterion('ITAE')
-        self.ise_criterion = Criterion('ISE')
-        
+        self.criterions = criterions
+
     def _evaluate(self, x, out, *args, **kwargs):
+
         kp, ki, kd = x
         self.C_pid.set_pid(kp, ki, kd)
-        _, response, error = self.response.close_loop_step_response(sys=self.motor(), C=self.C_pid(), v_desired=5, start_from=0)
+        _, response, error = self.response.close_loop_step_response(sys=self.motor(), C=self.C_pid(), v_desired=1, start_from=0)
 
-        itae = self.itae_criterion(error, self.t)
-        ise = self.ise_criterion(error, self.t)
-        
-        out["F"] = [itae, ise]
+        obj1_res = self.criterions["obj1"](error, self.t)
+        obj2_res = self.criterions["obj2"](error, self.t)
+
+        out["F"] = [obj1_res, obj2_res]
+

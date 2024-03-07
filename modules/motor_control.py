@@ -47,7 +47,7 @@ class PIDTransferFunction:
         pid_tf (ctrl.TransferFunction): The PID controller's transfer function.
     """
     
-    def __init__(self, kp, ki, kd) -> None:
+    def __init__(self, kp=1, ki=0, kd=0) -> None:
         """Initializes the PID controller with given parameters."""
         self.set_pid(kp=kp, ki=ki, kd=kd)
 
@@ -165,24 +165,24 @@ class Criterion:
     """Defines and computes performance criteria based on error and time vectors.
 
     Attributes:
-        criterion_name (str): The name of the performance criterion.
+        name (str): The name of the performance criterion.
         function (function): The lambda function implementing the criterion calculation.
     """
     
-    def __init__(self, criterion_name):
+    def __init__(self, name):
         """Initializes the Criterion object with a given performance criterion name."""
-        self.criterion_name = criterion_name.upper()
+        self.name = name.upper()
         self.function = self._get_criterion_function()
 
     def _get_criterion_function(self):
         """Determines and returns the appropriate lambda function for the specified criterion."""
-        if self.criterion_name == 'ISE':
+        if self.name == 'ISE':
             return lambda e, t: simpson(y=e**2, x=t)
-        elif self.criterion_name == 'IAE':
+        elif self.name == 'IAE':
             return lambda e, t: simpson(y=np.abs(e), x=t)
-        elif self.criterion_name == 'ITAE':
+        elif self.name == 'ITAE':
             return lambda e, t: simpson(y=t * np.abs(e), x=t)
-        elif self.criterion_name == 'ITSE':
+        elif self.name == 'ITSE':
             return lambda e, t: simpson(y=t * e**2, x=t)
         else:
             raise ValueError("Invalid criterion name. Please use 'ISE', 'IAE', 'ITAE', or 'ITSE'.")
