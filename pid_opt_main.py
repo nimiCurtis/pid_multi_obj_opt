@@ -38,7 +38,7 @@ class PIDOptimizationProblem(ElementwiseProblem):
                          xl=np.array([0, 0, 0]),  # Lower bounds for kp, ki, kd
                          xu=np.array([100, 100, 100]))  # Upper bounds for kp, ki, kd
         # Choose arbitrary parameters for the motor for demonstration
-        self.motor = DCMotorTransferFunction(kt=0.01, kb=0.01, J=0.01, L=0.5, b=0.1, R=1)
+        self.motor = DCMotorTransferFunction(kt=1.2, kb=0.1, J=0.022, L=0.035, b=0.5*(10**-3), R=2.45)
         self.C_pid = PIDTransferFunction(1, 0, 0)
         self.t = np.linspace(0, 2, 1000)  # Time vector for simulation
 
@@ -59,7 +59,6 @@ class PIDOptimizationProblem(ElementwiseProblem):
 
 
 
-
 def main():
     # Optimization problem setup
     problem = PIDOptimizationProblem()
@@ -71,7 +70,7 @@ def main():
     # Run the optimization algorithm
     res = minimize(problem,
                 algorithm,
-                ('n_gen', 5),
+                ('n_gen', 1),
                 seed = 1,
                 callback=MyCallback(),
                 verbose=True)
