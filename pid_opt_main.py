@@ -74,12 +74,12 @@ def main():
         pop_size=10
     )
 
-    ref_dirs = get_reference_directions("uniform", 2, n_partitions=9)
+    ref_dirs = get_reference_directions("uniform", 2, n_points=10)
 
     moed = MOEAD(
         ref_dirs,
-        n_neighbors=15,
-        prob_neighbor_mating=0.5,
+        n_neighbors=2,
+        prob_neighbor_mating=0.7,
     )
     # ### q1 #####
     
@@ -149,7 +149,7 @@ def main():
     # Run the optimization algorithm
     res = minimize(problem,
                 moed,
-                ('n_gen', 2),
+                ('n_gen', 1),
                 seed = 1,
                 callback=MyCallback(),
                 verbose=True)
