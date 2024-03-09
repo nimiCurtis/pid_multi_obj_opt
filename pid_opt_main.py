@@ -54,7 +54,7 @@ def main():
     print("*******")
     
     # time 
-    t = np.linspace(0, 3, 1000)  # Time vector for simulation
+    t = np.linspace(0, 7, 1000)  # Time vector for simulation
     print(f"* Sim time: {t.max()}")
     print("*******")
     
@@ -183,8 +183,85 @@ def main():
 
     metrics = Metrics(history=history)
     metrics.print_metrics_table()
-    a=1
     
+    
+    print("******* FINISH Metrics ********")
+    print("******* Start Sampling Solutions ********")
+
+    solutions, total_pareto_sol, objectives, total_pareto_obj = history.get_total_pareto_front()
+    
+    # Create an index array to track the original indices of sorted objectives
+    indices = np.argsort(total_pareto_obj[:, 0])
+    
+    # Sort objectives and solutions based on the first objective
+    total_pareto_obj_sorted = total_pareto_obj[indices]
+    total_pareto_sol_sorted = total_pareto_sol[indices]
+    
+    
+    ### Typical 1
+    typicl_obj1 = total_pareto_obj_sorted[0].T
+    typicl_sol1 = total_pareto_sol_sorted[0].T
+    print("* Typical solution 1: ")
+    print(f"* obj1: {typicl_obj1[0]} | obj2: {typicl_obj1[1]}")
+    print(f"* kp: {typicl_sol1[0]} | ki: {typicl_sol1[1]} | kd: {typicl_sol1[2]}")
+    C_pid1 = PIDTransferFunction(kp=typicl_sol1[0],
+                                ki=typicl_sol1[1],
+                                kd=typicl_sol1[2])
+
+    t, _, error, step_info = response.close_loop_step_response(
+        sys = motor(),
+        C=C_pid1(),
+        v_desired=1,
+        start_from=0,
+        show=True,
+        save=True,
+        info=True,
+        c_coeff = [typicl_sol1[0],typicl_sol1[1],typicl_sol1[2]]
+    )
+
+    typicl_both_obj = total_pareto_obj_sorted[-1].T
+    typicl_both_sol = total_pareto_sol_sorted[-1].T
+    
+    C_pid_both = PIDTransferFunction(kp=typicl_both_sol[0],
+                                ki=typicl_both_sol[1],
+                                kd=typicl_both_sol[2])
+
+    t, _, error, step_info = response.close_loop_step_response(
+        sys = motor(),
+        C=C_pid_both(),
+        v_desired=1,
+        start_from=0,
+        show=True,
+        save=True,
+        info=True,
+        c_coeff = [typicl_both_sol[0],typicl_both_sol[1],typicl_both_sol[2]]
+    )
+    
+    
+    # Create an index array to track the original indices of sorted objectives
+    indices = np.argsort(total_pareto_obj[:, 1])
+    
+    # Sort objectives and solutions based on the second objective
+    total_pareto_obj_sorted = objectives[indices]
+    total_pareto_sol_sorted = solutions[indices]
+    
+    typical_obj2 = total_pareto_obj_sorted[0].T
+    typicl_sol2 = total_pareto_sol_sorted[0].T
+
+    C_pid2 = PIDTransferFunction(kp=typicl_sol2[0],
+                                ki=typicl_sol2[1],
+                                kd=typicl_sol2[2])
+
+    t, _, error, step_info = response.close_loop_step_response(
+        sys = motor(),
+        C=C_pid2(),
+        v_desired=1,
+        start_from=0,
+        show=True,
+        save=True,
+        info=True,
+        c_coeff = [typicl_sol2[0],typicl_sol2[1],typicl_sol2[2]]
+    )
 
 
 if __name__ == "__main__":

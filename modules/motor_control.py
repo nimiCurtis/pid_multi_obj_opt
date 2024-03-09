@@ -114,7 +114,7 @@ class MotorResponse:
 
         return t, response, info
     
-    def close_loop_step_response(self, sys, C, v_desired, start_from=0, viz=False):
+    def close_loop_step_response(self, sys, C, v_desired, start_from=0, show=False, save=False, info=False, c_coeff=None):
         """Simulates and optionally visualizes the closed-loop step response of a system.
 
         Args:
@@ -137,31 +137,41 @@ class MotorResponse:
 
         # Simulate response
         t, response = ctrl.forced_response(system_closed_loop, T=self.t, U=step_input)
-        info = 1#ctrl.step_info(v_desired*system_closed_loop, T=self.t)
+
+        step_info = None
+        if info:
+            step_info = ctrl.step_info(v_desired*system_closed_loop, T=self.t)
 
         # Calculate error
         error = step_input - response
         
-        if viz:
+        if show:
             # Visualization
-            plt.figure(figsize=(12, 8))
-            plt.subplot(2, 1, 1)
-            plt.plot(t, step_input, 'r--', label=f'Desired Value ({v_desired})')
-            plt.plot(t, response, 'b-', label='System Response')
-            plt.title('Closed-loop Response and Error')
-            plt.ylabel('Response')
-            plt.legend(loc='best')
-            plt.grid(True)
+            fig = plt.figure(figsize=(12, 8))
+            if info:
+                fig.suptitle(f"Response with controller kp={np.round(c_coeff[0],2)},ki={np.round(c_coeff[1],2)},kd={np.round(c_coeff[2],2)},  \nRiseTime: {np.round(step_info['RiseTime'],4)}[sec] | OverShoot: {np.round(step_info['Overshoot'],3)}[%]")
+            
+            ax = fig.add_subplot(2,1,1)
+            ax.plot(t, step_input, 'r--', label=f'Desired Value ({v_desired})')
+            ax.plot(t, response, 'b-', label='System Response')
 
-            plt.subplot(2, 1, 2)
-            plt.plot(t, error, 'g-', label='Error')
-            plt.xlabel('Time (seconds)')
-            plt.ylabel('Error')
-            plt.legend(loc='best')
-            plt.grid(True)
+            ax.set_title('Closed-loop Response and Error')
+            ax.set_ylabel('Response')
+            ax.legend(loc='best')
+            ax.grid(True)
+
+            ax2 = fig.add_subplot(2,1,2)
+            ax2.plot(t, error, 'g-', label='Error')
+            ax2.set_xlabel('Time (seconds)')
+            ax2.set_ylabel('Error')
+            ax2.legend(loc='best')
+            ax2.grid(True)
             plt.show()
+        
+        if save:
+            fig.savefig(f"figures/response_kp{int(c_coeff[0])}_ki{int(c_coeff[1])}_kd{int(c_coeff[2])}")
 
-        return t, response, error, info
+        return t, response, error, step_info
     
 class Criterion:
     """Defines and computes performance criteria based on error and time vectors.

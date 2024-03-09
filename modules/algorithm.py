@@ -304,7 +304,7 @@ class Metrics:
                             "Time": np.empty((0,1))}
 
         self.igd_indicator = IGD(pf=self.ref_pf)
-        self.hv_indicator = HV(ref_point=[0.04,0.05])
+        self.hv_indicator = HV(ref_point=[0.3,0.2])
         self.spread_indicator = self.SPREAD
         
     @staticmethod
