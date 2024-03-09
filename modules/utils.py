@@ -1,4 +1,12 @@
 import matplotlib.pyplot as plt
+import time
+
+def tic():
+    return time.time()
+
+
+def toc(t):
+    return float(tic()) - float(t)
 
 def plot_solution_space(solutions, title):
     

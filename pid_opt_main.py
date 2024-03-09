@@ -23,7 +23,8 @@ from modules.utils import(
 from modules.algorithm import(
     PIDOptimizationProblem,
     Algorithm,
-    History
+    History,
+    Metrics
 )
 
 from modules.motor_control import (
@@ -117,7 +118,7 @@ def main():
 
         # Solutions in the decision space (PID parameters)
         fig, _ = plot_solution_space(solutions=res["solutions"]["all"].T,
-                             title = f'Solution Space - {algorithm.name} @ {n_gen} generations')
+                            title = f'Solution Space - {algorithm.name} @ {n_gen} generations')
 
         # Solutions and Pareto front in the objective space (ITAE and ISE)
         fig.savefig(f"figures/solution_space_{algorithm.name}_{n_gen}gen")
@@ -126,7 +127,7 @@ def main():
                             objective_pareto=res["objective"]["pareto"].T,
                             obj_names=[algorithm.obj_functions["obj1"].name,
                                     algorithm.obj_functions["obj2"].name],
-                             title = f'Objective Space with Pareto Front Highlighted - {algo_name} @ {n_gen} generations',
+                            title = f'Objective Space with Pareto Front Highlighted - {algo_name} @ {n_gen} generations',
                             use_pareto=True
                         )
         fig.savefig(f"figures/objective_space_{algorithm.name}_{n_gen}gen")
@@ -165,16 +166,24 @@ def main():
 
             history.update(algo_name=algorithm.name,
                         solutions=res["solutions"]["pareto"],
-                        objective=res["objective"]["pareto"])
+                        objective=res["objective"]["pareto"],
+                        time=res["Time"])
 
             print(f"****")
         
         print(f"* saving {algo_name} plot and video")
-        history.plot_algo_paretos(algorithm=algorithm, save_video=False, show=True)
-        history.plot_algo_pareto_front(algorithm=algorithm,show=True)
+        history.plot_algo_paretos(algorithm=algorithm, save_video=False, show=False)
+        history.plot_algo_pareto_front(algorithm=algorithm,show=False)
 
-    history.plot_total_pareto(show=True)
-    history.plot_total_pareto_front(show=True)
+    history.plot_total_pareto(show=False)
+    history.plot_total_pareto_front(show=False)
+
+    print("******* Finish Algo ********")
+    print("******* Start Metrics ********")
+
+    metrics = Metrics(history=history)
+    metrics.print_metrics_table()
+    a=1
     
 
 

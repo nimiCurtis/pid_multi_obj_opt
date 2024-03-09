@@ -16,7 +16,8 @@ from pymoo.indicators.hv import HV
 from pymoo.indicators.igd import IGD
 
 from modules.motor_control import MotorResponse
-from modules.utils import plot_solution_space, plot_pareto_objective, plot_objective_space
+from modules.utils import plot_objective_space, tic, toc
+import pandas as pd
 
 class Algorithm:
 
@@ -29,6 +30,7 @@ class Algorithm:
 
     def run(self,n_gen):
 
+        t = tic()
         res = minimize(self.problem,
                 self.algorithm,
                 ('n_gen', n_gen),
@@ -36,10 +38,12 @@ class Algorithm:
                 callback=MyCallback(),
                 save_history = True,
                 verbose=True)
-
+        dt = toc(t)
+        
         return {"solutions":{"all":res.pop.get("X"), "pareto":res.X},
                 "objective": {"all": res.pop.get("F"), "pareto": res.F},
-                "history": res.history}
+                "history": res.history,
+                "Time": dt}
 
 class MyOutput(Output):
 
@@ -82,7 +86,7 @@ class PIDOptimizationProblem(ElementwiseProblem):
                         n_obj=2,  # ITAE, ISE
                         n_constr=0,  # No constraints
                         xl=np.array([10, 1, 0]),  # Lower bounds for kp, ki, kd
-                        xu=np.array([200, 250, 50]))  # Upper bounds for kp, ki, kd
+                        xu=np.array([50, 50, 25]))  # Upper bounds for kp, ki, kd
 
         self.motor = motor
         self.C_pid = C_pid
@@ -110,19 +114,18 @@ class History:
         for algo_name in algorithms_names:
             self.algo[algo_name] = {"solutions":[],
                                     "objective":[],
-                                    "pareto_front":{"solutions":[],
-                                                    "objective":[]}}
+                                    "Time":[]}
 
         self.total = {"solutions":[],
-                        "objective":[],
-                        "pareto_front":{"solutions":[],
-                                                    "objective":[]}}
+                        "objective":[]}
+        
     
-    def update(self,algo_name, solutions, objective):
+    def update(self,algo_name, solutions, objective,time):
         self.algo[algo_name]["solutions"].append(solutions)
         self.total["solutions"].append(solutions)
         self.algo[algo_name]["objective"].append(objective)
         self.total["objective"].append(objective)
+        self.algo[algo_name]["Time"].append(time)
 
     def _get_stack_algo_pareto(self, algo_name):
         stack_objective = np.vstack(self.algo[algo_name]["objective"])
@@ -284,3 +287,87 @@ class History:
         print("* Save figure")
         if show:
             plt.show()
+
+
+class Metrics:
+
+    def __init__(self, history) -> None:
+        self.history_data = history
+        _, _, _, self.ref_pf = self.history_data.get_total_pareto_front()
+        
+        self.metrics = {}
+        for algo_name in self.history_data.algo.keys():
+        
+            self.metrics[algo_name] = {"IGD":np.empty((0,1)),
+                            "HV": np.empty((0,1)),
+                            "SPREAD": np.empty((0,1)),
+                            "Time": np.empty((0,1))}
+
+        self.igd_indicator = IGD(pf=self.ref_pf)
+        self.hv_indicator = HV(ref_point=[0.04,0.05])
+        self.spread_indicator = self.SPREAD
+        
+    @staticmethod
+    def SPREAD(points):
+    
+    # Calculate the distance between all pairs of points 
+        distances = [] 
+        for i in range(len(points)): 
+            for j in range(i+1, len(points)): 
+                d = np.linalg.norm(np.array(points[i]) - np.array(points[j])) 
+                distances.append(d) 
+        
+        # Calculate the spread metric as the average distance between points 
+        spread = np.mean(distances) 
+        return spread
+    
+    def _evaluate(self):
+
+        for algo_name in self.history_data.algo.keys():
+            for i in range(len(self.history_data.algo[algo_name]["objective"])):
+                algo_pf_i = self.history_data.algo[algo_name]["objective"][i]
+                # time_i = self.history_data.algo[algo_name]["Time"][i]
+                time_i = self.history_data.algo[algo_name]["Time"][i]
+                self.metrics[algo_name]["IGD"] = np.vstack([self.metrics[algo_name]["IGD"], self.igd_indicator(algo_pf_i)])
+                self.metrics[algo_name]["HV"] = np.vstack([self.metrics[algo_name]["HV"], self.hv_indicator(algo_pf_i)])
+                self.metrics[algo_name]["SPREAD"] = np.vstack([self.metrics[algo_name]["SPREAD"], self.spread_indicator(algo_pf_i)])
+                self.metrics[algo_name]["Time"] = np.vstack([self.metrics[algo_name]["Time"], time_i])
+
+    def print_metrics_table(self):
+        """Prints the metrics stored in self.metrics in a readable table format."""
+        
+        print("*** Start Metrics Evaluation ***")
+        self._evaluate()
+        print("*** Finish Metrics Evaluation ***")
+        
+        
+        print("*** Print Metrics ***")
+
+        
+        # Iterate through the metrics for each algorithm
+        
+        for algo_name, metrics in self.metrics.items():
+            # Create an empty list to hold the data for creating the DataFrame
+            data = []
+            # For each algorithm, append a row to the data list
+            print(f"* {algo_name} metrics: ")
+            for i in range(len(metrics['IGD'])):
+                row = []
+                row.extend([
+                    metrics['IGD'][i][0],
+                    metrics['HV'][i][0],
+                    metrics['SPREAD'][i][0],
+                    metrics['Time'][i][0]
+                ])
+                data.append(row)
+
+            df = pd.DataFrame(data, columns=['IGD', 'HV', 'SPREAD', 'Time'])
+
+            # Save the DataFrame to an Excel file
+            file_name = f"tables/{algo_name}_table.xlsx"
+            df.to_excel(file_name, index=False, engine='openpyxl')
+
+            print(f"Metrics saved to '{file_name}'.")
+            
+            # Print the DataFrame
+            print(df.to_string(index=False))
