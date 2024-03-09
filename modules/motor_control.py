@@ -98,6 +98,7 @@ class MotorResponse:
 
         # Simulate step response
         t, response = ctrl.forced_response(sys*C, T=self.t, U=step_input)
+        info = 1# ctrl.step_info(v_in*sys*C, T=self.t)
         
         if viz:
             # Visualization
@@ -111,7 +112,7 @@ class MotorResponse:
             plt.grid(True)
             plt.show()
 
-        return t, response
+        return t, response, info
     
     def close_loop_step_response(self, sys, C, v_desired, start_from=0, viz=False):
         """Simulates and optionally visualizes the closed-loop step response of a system.
@@ -136,6 +137,7 @@ class MotorResponse:
 
         # Simulate response
         t, response = ctrl.forced_response(system_closed_loop, T=self.t, U=step_input)
+        info = 1#ctrl.step_info(v_desired*system_closed_loop, T=self.t)
 
         # Calculate error
         error = step_input - response
@@ -159,7 +161,7 @@ class MotorResponse:
             plt.grid(True)
             plt.show()
 
-        return t, response, error
+        return t, response, error, info
     
 class Criterion:
     """Defines and computes performance criteria based on error and time vectors.
@@ -216,10 +218,10 @@ def example():
     
     response = MotorResponse(t=t)
     
-    t, res = response.open_loop_step_response(sys=sys,
+    t, res, info = response.open_loop_step_response(sys=sys,
                                             viz=True)
     
-    t,res,e = response.close_loop_step_response(sys = sys,
+    t,res,e, info = response.close_loop_step_response(sys = sys,
                                                 C=C,
                                                 v_desired=2,
                                                 start_from=1,
