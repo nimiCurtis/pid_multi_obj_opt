@@ -86,7 +86,7 @@ class PIDOptimizationProblem(ElementwiseProblem):
                         n_obj=2,  # ITAE, ISE
                         n_constr=0,  # No constraints
                         xl=np.array([10, 1, 0]),  # Lower bounds for kp, ki, kd
-                        xu=np.array([50, 50, 25]))  # Upper bounds for kp, ki, kd
+                        xu=np.array([100, 25, 10]))  # Upper bounds for kp, ki, kd
 
         self.motor = motor
         self.C_pid = C_pid
