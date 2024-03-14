@@ -219,23 +219,26 @@ def example():
                                         L=0.5,
                                         b=0.1,
                                         R=1)
+    
     sys = motor_tf.get_transfer_function()
     
-    C_pid = PIDTransferFunction(kp=200,ki=100,kd=10)
+    C_pid = PIDTransferFunction(kp=48.8,ki=49.77,kd=14.06)
     C = C_pid.get_transfer_function()
     
-    t = np.linspace(0, 2, 1000)  # Time from 0 to 10 seconds
+    t = np.linspace(0, 7, 1000)  # Time from 0 to 10 seconds
     
     response = MotorResponse(t=t)
     
-    t, res, info = response.open_loop_step_response(sys=sys,
-                                            viz=True)
-    
+    # t, res, info = response.open_loop_step_response(sys=sys,
+    #                                         viz=True)
+
     t,res,e, info = response.close_loop_step_response(sys = sys,
                                                 C=C,
-                                                v_desired=2,
-                                                start_from=1,
-                                                viz=True)
+                                                v_desired=1,
+                                                start_from=0,
+                                                info=True,
+                                                c_coeff=[48.8,49.77,14.06],
+                                                show=True)
     
     ISE = Criterion("ISE")
     IAE = Criterion("IAE")
